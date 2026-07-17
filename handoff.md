@@ -49,6 +49,12 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D23 | Deep immutability        | Core model types are deeply immutable: final types and fields, defensive copies on input, no mutable internals exposed |
 | D24 | Core package             | S1 core model lives in `com.axiometa.core`                                     |
 | D25 | Build-output ignore      | `.gitignore` ignoring `target/` (approved in S1, revising the S0-era decline recorded in D12) |
+| D26 | Representation contract  | Marker `interface Representation` documenting the D21/D23 rules; the six phase contracts bound `<R extends Representation>`; S1 types and data-carrying records stay unbounded |
+| D27 | Operator arities         | Crossover 2→2 via dedicated `OffspringPair<R>` record; mutation 1→1; no n-ary support |
+| D28 | Component randomness     | Constructor injection of a per-component named random stream (S3 type); phase signatures carry no randomness parameter |
+| D29 | Population abstraction   | Immutable non-empty `record Population<R>` over `EvaluatedCandidate<R>` (candidate + evaluation pairing); selection consumes populations, replacement produces them |
+| D30 | Termination observation  | Immutable `record AlgorithmState<R>` (iteration, evaluationCount, population) observed by `Termination.shouldTerminate(state)`; termination implementations may keep internal state across calls |
+| D31 | S2 packages              | Model additions (`Representation`, `EvaluatedCandidate`, `Population`) in `com.axiometa.core`; `AlgorithmPhase`, the six phase contracts, `OffspringPair`, `AlgorithmState` in `com.axiometa.phase` |
 
 ## Working protocol (condensed)
 
@@ -79,7 +85,7 @@ Open decisions:
 
 Done when: `mvn clean verify` passes with zero warnings and runs the placeholder test.
 
-### S1 — Immutable core model — `committed (this commit)`
+### S1 — Immutable core model — `reviewed`
 
 Scope: typed `Problem<R>`, candidate/solution wrapper, objective declarations with min/max sense, constraint declarations, evaluation-result type. Deep immutability, defensive validation, documented contracts. No algorithm code.
 
@@ -95,7 +101,7 @@ Done when: contracts documented; unit tests cover normal, edge, and failure case
 
 Built: package `com.axiometa.core` with six public types — `Problem<R>` (declarations + `evaluate(R)`, documented contract, thread-safety deferred to S4), `Candidate<R>` (record; equality delegates to the representation per D21), `Objective` (name + `ObjectiveSense`), `ObjectiveSense` (`MINIMIZE`/`MAXIMIZE`), `Constraint` (name only; convention per D20), `Evaluation` (final class; defensive copies, indexed accessors, `isFeasible()`, exact-representation value equality) — plus `package-info` documenting the D23 immutability rule and D22 exception conventions. 32 unit tests across five classes cover construction failures with exact messages, defensive copying, index bounds, feasibility (including `-0.0`), equality semantics, and a minimal test-only `Problem<Double>` fixture proving the contracts compose. `BuildSanityTest` removed as superseded.
 
-### S2 — Representation & phase-component contracts — `todo`
+### S2 — Representation & phase-component contracts — `committed (this commit)`
 
 Scope: representation-type contract; marker super-interface `AlgorithmPhase` (D15); typed contracts for all six algorithm phases — initialization, selection, crossover, mutation, replacement, termination (D13, D14) — each extending `AlgorithmPhase`. Contracts only — no concrete implementations.
 
@@ -107,6 +113,8 @@ Open decisions:
 5. What state the termination contract observes (decided here per D14, ahead of the S6 lifecycle design).
 
 Done when: contracts compile against S1 types, are documented, and have minimal type-level tests using test doubles.
+
+Built: `com.axiometa.core` gained `Representation` (marker carrying the D21/D23 rules), `EvaluatedCandidate<R>` (candidate + evaluation pairing), and `Population<R>` (immutable, non-empty, defensively copied). New package `com.axiometa.phase` holds the `AlgorithmPhase` marker (D15) and the six bounded phase contracts — `Initialization` (`initialize(populationSize)`), `Selection` (`select(population, count)`), `Crossover` (`crossover(first, second)` returning `OffspringPair<R>`), `Mutation` (`mutate(candidate)`), `Replacement` (`replace(current, offspring)`), `Termination` (`shouldTerminate(AlgorithmState<R>)`) — plus the `OffspringPair<R>` and `AlgorithmState<R>` records and a package doc recording the D13/D28 rules. Contracts only; no concrete phases, no randomness types, no S1 modifications. Tests: record validation/defensive-copy/equality suites plus `PhaseContractsTest`, which composes deterministic test doubles of all six contracts into one full iteration over the core types and asserts the shared `AlgorithmPhase` ancestor.
 
 ### S3 — Deterministic random infrastructure — `todo`
 
