@@ -55,6 +55,10 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D29 | Population abstraction   | Immutable non-empty `record Population<R>` over `EvaluatedCandidate<R>` (candidate + evaluation pairing); selection consumes populations, replacement produces them |
 | D30 | Termination observation  | Immutable `record AlgorithmState<R>` (iteration, evaluationCount, population) observed by `Termination.shouldTerminate(state)`; termination implementations may keep internal state across calls |
 | D31 | S2 packages              | Model additions (`Representation`, `EvaluatedCandidate`, `Population`) in `com.axiometa.core`; `AlgorithmPhase`, the six phase contracts, `OffspringPair`, `AlgorithmState` in `com.axiometa.phase` |
+| D32 | Random generator         | JDK `L64X128MixRandom`, one instance per stream, created via `RandomGeneratorFactory` from a 64-bit seed |
+| D33 | Child-seed derivation    | child seed = first 8 bytes (big-endian) of SHA-256(parent seed as 8 big-endian bytes \|\| stream name as UTF-8); pure function of (seed, name) — same name re-derives the identical stream, so wiring must give distinct components distinct names |
+| D34 | Random API surface       | `interface RandomSource { nextInt(bound), nextDouble(), nextBoolean(), child(name) }` implemented by `final SeededRandomSource` with static `root(seed)`; instances stateful, not thread-safe, one owner each; golden-value test pins generator + derivation |
+| D35 | Random package           | Random infrastructure lives in `com.axiometa.random`                           |
 
 ## Working protocol (condensed)
 
@@ -101,7 +105,7 @@ Done when: contracts documented; unit tests cover normal, edge, and failure case
 
 Built: package `com.axiometa.core` with six public types — `Problem<R>` (declarations + `evaluate(R)`, documented contract, thread-safety deferred to S4), `Candidate<R>` (record; equality delegates to the representation per D21), `Objective` (name + `ObjectiveSense`), `ObjectiveSense` (`MINIMIZE`/`MAXIMIZE`), `Constraint` (name only; convention per D20), `Evaluation` (final class; defensive copies, indexed accessors, `isFeasible()`, exact-representation value equality) — plus `package-info` documenting the D23 immutability rule and D22 exception conventions. 32 unit tests across five classes cover construction failures with exact messages, defensive copying, index bounds, feasibility (including `-0.0`), equality semantics, and a minimal test-only `Problem<Double>` fixture proving the contracts compose. `BuildSanityTest` removed as superseded.
 
-### S2 — Representation & phase-component contracts — `committed (this commit)`
+### S2 — Representation & phase-component contracts — `reviewed`
 
 Scope: representation-type contract; marker super-interface `AlgorithmPhase` (D15); typed contracts for all six algorithm phases — initialization, selection, crossover, mutation, replacement, termination (D13, D14) — each extending `AlgorithmPhase`. Contracts only — no concrete implementations.
 
@@ -116,7 +120,7 @@ Done when: contracts compile against S1 types, are documented, and have minimal 
 
 Built: `com.axiometa.core` gained `Representation` (marker carrying the D21/D23 rules), `EvaluatedCandidate<R>` (candidate + evaluation pairing), and `Population<R>` (immutable, non-empty, defensively copied). New package `com.axiometa.phase` holds the `AlgorithmPhase` marker (D15) and the six bounded phase contracts — `Initialization` (`initialize(populationSize)`), `Selection` (`select(population, count)`), `Crossover` (`crossover(first, second)` returning `OffspringPair<R>`), `Mutation` (`mutate(candidate)`), `Replacement` (`replace(current, offspring)`), `Termination` (`shouldTerminate(AlgorithmState<R>)`) — plus the `OffspringPair<R>` and `AlgorithmState<R>` records and a package doc recording the D13/D28 rules. Contracts only; no concrete phases, no randomness types, no S1 modifications. Tests: record validation/defensive-copy/equality suites plus `PhaseContractsTest`, which composes deterministic test doubles of all six contracts into one full iteration over the core types and asserts the shared `AlgorithmPhase` ancestor.
 
-### S3 — Deterministic random infrastructure — `todo`
+### S3 — Deterministic random infrastructure — `committed (this commit)`
 
 Scope: random-source abstraction; one root seed; independent named child streams; stable name→seed derivation (never `String.hashCode()`, never shared mutable RNG across components or threads).
 
@@ -126,6 +130,8 @@ Open decisions:
 3. API surface (which `next*` methods, bounded variants).
 
 Done when: reproducibility tests pass — same root seed ⇒ identical streams; distinct names ⇒ independent streams.
+
+Built: `com.axiometa.random` with `RandomSource` (minimal owned contract: `nextInt(bound)`, `nextDouble()`, `nextBoolean()`, `child(name)`; documented single-owner/no-thread-sharing rule) and `SeededRandomSource` (`root(seed)` factory; JDK `L64X128MixRandom` per D32; SHA-256 name→seed derivation per D33, independent of draw history). 14 tests cover stream identity for equal seeds, independence across seeds/names/parents/paths, re-derivation identity, derivation's order-insensitivity, range and validation behavior, and a golden-value change detector pinning the generator and derivation outputs.
 
 ### S4 — Sequential evaluator — `todo`
 
