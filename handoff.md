@@ -36,6 +36,9 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D10 | First end-to-end algorithm | Genetic Algorithm (S7)                                                       |
 | D11 | Decision registry location | This file (`handoff.md`)                                                     |
 | D12 | S0 extras                | README update only — Maven wrapper and `.gitignore` explicitly declined        |
+| D13 | Phase-component principle | Algorithm phases (initialization, selection, crossover, mutation, replacement, termination) are pluggable, independently testable components; algorithm loops are thin orchestrators |
+| D14 | Phase-contract placement | All six phase contracts declared up front in S2, including termination; S6 implements the lifecycle and concrete termination combinators against the S2 contract |
+| D15 | Phase common ancestor    | Marker super-interface `AlgorithmPhase` (no members) extended by all six phase contracts; not an abstract class |
 
 ## Working protocol (condensed)
 
@@ -80,14 +83,16 @@ Open decisions:
 
 Done when: contracts documented; unit tests cover normal, edge, and failure cases.
 
-### S2 — Representation & variation-operator contracts — `todo`
+### S2 — Representation & phase-component contracts — `todo`
 
-Scope: representation-type contract; typed mutation and crossover contracts parameterized by representation type. Contracts only — no concrete operators.
+Scope: representation-type contract; marker super-interface `AlgorithmPhase` (D15); typed contracts for all six algorithm phases — initialization, selection, crossover, mutation, replacement, termination (D13, D14) — each extending `AlgorithmPhase`. Contracts only — no concrete implementations.
 
 Open decisions:
-1. Operator arities (crossover 2→2 vs 2→1; n-ary support or not).
-2. How operators receive randomness (constructor injection vs per-call random-source parameter).
-3. Contract names and signatures.
+1. Contract names and exact signatures.
+2. Operator arities (crossover 2→2 vs 2→1; n-ary support or not).
+3. How components receive randomness (constructor injection vs per-call random-source parameter).
+4. What population/collection abstraction selection and replacement operate on (may require a population type on top of S1).
+5. What state the termination contract observes (decided here per D14, ahead of the S6 lifecycle design).
 
 Done when: contracts compile against S1 types, are documented, and have minimal type-level tests using test doubles.
 
@@ -127,23 +132,22 @@ Done when: hit/miss tests, stochastic-bypass tests, and accounting tests pass.
 
 ### S6 — Algorithm lifecycle & termination — `todo`
 
-Scope: minimal algorithm lifecycle contract; composable termination conditions (e.g. max evaluations, max iterations, and/or combinators).
+Scope: minimal algorithm lifecycle contract (thin orchestrator per D13); concrete composable termination conditions implementing the S2 termination contract (e.g. max evaluations, max iterations, and/or combinators).
 
 Open decisions:
 1. Lifecycle shape (step-based vs run-to-completion).
-2. What state termination conditions may observe.
-3. Initial combinator set.
+2. Initial combinator set.
 
 Done when: stub-algorithm tests exercise the lifecycle and termination composition.
 
 ### S7 — Genetic Algorithm end-to-end — `todo`
 
-Scope: one simple GA (D10) built only from S1–S6 pieces; one toy problem as test fixture; deterministic end-to-end reproducibility test. Implement from an approved specification with citation (`CLAUDE.md` → Algorithm Provenance) — no code copied from other optimization libraries.
+Scope: one simple GA (D10) as a thin orchestrator (D13) over concrete implementations of the S2 phase contracts, built only from S1–S6 pieces; one toy problem as test fixture; deterministic end-to-end reproducibility test. Implement from an approved specification with citation (`CLAUDE.md` → Algorithm Provenance) — no code copied from other optimization libraries.
 
 Open decisions:
 1. GA flavor for this slice (generational or not, elitism, selection operator).
 2. Toy problem and representation (e.g. OneMax on a bitstring vs sphere on a real vector).
-3. Concrete operators required and their parameters.
+3. Concrete phase components required (initializer, selection, crossover, mutation, replacement) and their parameters.
 4. GA configuration API shape.
 5. Where the toy problem lives (test sources vs example package).
 
