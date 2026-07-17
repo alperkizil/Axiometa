@@ -17,6 +17,9 @@ import java.util.List;
  *       {@link NullPointerException}, must never return null, and must return
  *       an {@link Evaluation} whose objective and constraint counts equal the
  *       sizes of the declared lists, in declaration order.</li>
+ *   <li>{@link #evaluationSemantics()} must return the same non-null constant
+ *       on every call: the semantics are fixed for the lifetime of the
+ *       problem.</li>
  *   <li>Thread-safety of implementations is intentionally unspecified at this
  *       stage; it will be fixed by the evaluator contract.</li>
  * </ul>
@@ -49,4 +52,12 @@ public interface Problem<R> {
      * @throws NullPointerException if {@code representation} is null
      */
     Evaluation evaluate(R representation);
+
+    /**
+     * Returns whether {@link #evaluate(Object)} is deterministic or
+     * stochastic.
+     *
+     * @return the evaluation semantics, never null, constant for this problem
+     */
+    EvaluationSemantics evaluationSemantics();
 }

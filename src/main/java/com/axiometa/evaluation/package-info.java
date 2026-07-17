@@ -14,5 +14,10 @@
  * made against the problem; this counter is the scientific accounting unit
  * for experiment budgets. Evaluator instances have one owner and are not
  * thread-safe unless a concrete implementation documents otherwise.
+ *
+ * <p>{@link com.axiometa.evaluation.CachingEvaluator} can decorate any
+ * evaluator for problems declaring deterministic evaluation; stochastic
+ * problems bypass the cache entirely, so caching never silently converts a
+ * stochastic problem into a deterministic one.
  */
 package com.axiometa.evaluation;

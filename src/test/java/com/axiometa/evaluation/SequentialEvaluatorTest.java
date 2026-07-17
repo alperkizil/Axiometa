@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.axiometa.core.Candidate;
 import com.axiometa.core.Constraint;
 import com.axiometa.core.Evaluation;
+import com.axiometa.core.EvaluationSemantics;
 import com.axiometa.core.Objective;
 import com.axiometa.core.ObjectiveSense;
 import com.axiometa.core.Problem;
@@ -57,6 +58,11 @@ class SequentialEvaluatorTest {
                 return new Evaluation(new double[] {1.0}, new double[] {0.0});
             }
             return new Evaluation(new double[] {representation.length()}, new double[0]);
+        }
+
+        @Override
+        public EvaluationSemantics evaluationSemantics() {
+            return EvaluationSemantics.DETERMINISTIC;
         }
     }
 

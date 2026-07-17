@@ -63,6 +63,9 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D37 | Evaluation accounting    | `long evaluationCount()` on `Evaluator` = cumulative `Problem.evaluate` attempts (counted whether or not the attempt completes); decorators avoiding real work must surface the wrapped evaluator's count |
 | D38 | Failure semantics        | Collect failures as outcomes: sealed `EvaluationOutcome<R>` with `Success(EvaluatedCandidate)` / `Failure(candidate, RuntimeException)`; batch continues after failures; JVM `Error`s propagate immediately; caller input bugs (null list/elements) are thrown, never collected; problem-contract violations (null/mismatched evaluation) become failures carrying `IllegalStateException` |
 | D39 | Evaluation package       | Evaluation infrastructure lives in `com.axiometa.evaluation`                   |
+| D40 | Evaluation semantics     | `enum EvaluationSemantics { DETERMINISTIC, STOCHASTIC }` in core; `Problem` gains required `evaluationSemantics()` (S1 amendment approved here); no default — every problem declares explicitly |
+| D41 | Cache behavior           | `CachingEvaluator<R>` decorates any evaluator: key = representation value (D21), per-problem scope via D36; unbounded, no eviction; only successes cached — failures retry; within one batch, duplicates of an uncached representation are all forwarded (batching preserved); stochastic problems bypass the cache entirely |
+| D42 | Cache accounting         | `evaluationCount()` delegates to the wrapped evaluator (stack top = real attempts, D37); `cacheHitCount()` = requests served from cache |
 
 ## Working protocol (condensed)
 
@@ -137,7 +140,7 @@ Done when: reproducibility tests pass — same root seed ⇒ identical streams; 
 
 Built: `com.axiometa.random` with `RandomSource` (minimal owned contract: `nextInt(bound)`, `nextDouble()`, `nextBoolean()`, `child(name)`; documented single-owner/no-thread-sharing rule) and `SeededRandomSource` (`root(seed)` factory; JDK `L64X128MixRandom` per D32; SHA-256 name→seed derivation per D33, independent of draw history). 14 tests cover stream identity for equal seeds, independence across seeds/names/parents/paths, re-derivation identity, derivation's order-insensitivity, range and validation behavior, and a golden-value change detector pinning the generator and derivation outputs.
 
-### S4 — Sequential evaluator — `committed (this commit)`
+### S4 — Sequential evaluator — `committed 6d1f106`
 
 Scope: evaluator abstraction (batch evaluation of candidates against a `Problem<R>`, input order preserved regardless of completion order) plus the sequential implementation.
 
@@ -150,7 +153,7 @@ Done when: order-preservation, counting, and failure tests pass.
 
 Built: `com.axiometa.evaluation` with the sealed `EvaluationOutcome<R>` (`Success`/`Failure`, common `candidate()` accessor, exhaustive pattern matching), the `Evaluator<R>` contract (problem bound at construction per D36; one outcome per candidate in input order; attempt counting per D37; collect-failures semantics per D38), and `SequentialEvaluator<R>` (in-order on the calling thread; defensively verifies the problem's evaluation counts and null contract, converting violations to `IllegalStateException` failures; immutable result lists; single-owner counter). 18 tests cover ordering/pairing, cumulative and failed-attempt counting, mixed and all-failure batches, `Error` propagation, contract-violation detection, input validation before any evaluation, result immutability, and outcome record validation.
 
-### S5 — Caching evaluator decorator — `todo`
+### S5 — Caching evaluator decorator — `committed (this commit)`
 
 Scope: in-memory fitness cache wrapping any evaluator. Caches evaluations, not candidate identity. Must never silently convert a stochastic problem into a deterministic one.
 
@@ -161,6 +164,8 @@ Open decisions:
 4. Accounting: cache hits vs real evaluations.
 
 Done when: hit/miss tests, stochastic-bypass tests, and accounting tests pass.
+
+Built: `EvaluationSemantics` enum in core and the required `Problem.evaluationSemantics()` declaration (D40; both test fixtures updated). `CachingEvaluator<R>` in `com.axiometa.evaluation`: unbounded representation-value cache (D41) serving hits as successes paired with the requesting candidate, forwarding all uncached requests (within-batch duplicates included) to the wrapped evaluator as one order-preserving batch, caching only successes, bypassing entirely for stochastic problems, delegating `evaluationCount()` and exposing `cacheHitCount()` (D42), and defensively verifying the inner evaluator's outcome count. 14 tests cover hit/miss behavior, ordering and pairing, duplicate forwarding, failure retry, stochastic bypass, accounting arithmetic (hits + real attempts = requests), validation, misbehaving-inner detection, and immutability.
 
 ### S6 — Algorithm lifecycle & termination — `todo`
 
