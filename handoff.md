@@ -73,6 +73,7 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D47 | Toy problem              | OneMax on immutable `BitString` (record over `List<Boolean>`); operators: one-point crossover, per-bit flip mutation; the OneMax fitness fixture lives in test sources |
 | D48 | S7 components            | `RandomBitStringInitialization(bitCount, random)`; `OnePointCrossover(probability, random)` — clones parents when the probability draw fails or length < 2; `BitFlipMutation(perBitProbability, random)` — one draw per bit; `TournamentSelection(sense, k, random)` — with-replacement sampling, ties keep the first sampled; `GenerationalReplacement(sense, elitismCount)` — best-e of current (stable sort) + offspring in order, sized to the current population |
 | D49 | GA config & packages     | Plain 7-argument constructor; even `populationSize >= 2`; per-step flow: select N parents → pair in order → crossover → mutate both children → evaluate → replace; any evaluation failure → `IllegalStateException`; packages `com.axiometa.ga` (generic GA pieces) and `com.axiometa.bitstring` (representation + operators) |
+| D50 | Runnable example package | User-requested demo: `com.axiometa.example` in main sources with a public `OneMaxProblem` and `OneMaxExample` (a `main` wiring the full stack: named streams → cached sequential evaluation → GA phase components → composed termination → shared runner); mirrors, not replaces, the S7 test fixture (D47); example code is not framework API and has its own unit tests |
 
 ## Working protocol (condensed)
 
