@@ -41,6 +41,11 @@ class ProblemContractTest {
             return new Evaluation(
                     new double[] {value}, new double[] {Math.max(0.0, -value)});
         }
+
+        @Override
+        public EvaluationSemantics evaluationSemantics() {
+            return EvaluationSemantics.DETERMINISTIC;
+        }
     }
 
     private final NonNegativeMinimization problem = new NonNegativeMinimization();
@@ -50,6 +55,7 @@ class ProblemContractTest {
         assertEquals(List.of(new Objective("value", ObjectiveSense.MINIMIZE)),
                 problem.objectives());
         assertEquals(List.of(new Constraint("non-negative")), problem.constraints());
+        assertEquals(EvaluationSemantics.DETERMINISTIC, problem.evaluationSemantics());
     }
 
     @Test
