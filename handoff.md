@@ -41,6 +41,14 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D15 | Phase common ancestor    | Marker super-interface `AlgorithmPhase` (no members) extended by all six phase contracts; not an abstract class |
 | D16 | Initial project version  | `0.1.0-SNAPSHOT`                                                               |
 | D17 | S0 pinned build versions | maven-compiler-plugin 3.15.0; maven-surefire-plugin 3.5.6; junit-jupiter 5.12.2 |
+| D18 | S1 core type names       | `Candidate<R>` representation wrapper; `Evaluation` result type                |
+| D19 | Objective sense & values | `ObjectiveSense` enum (`MINIMIZE`/`MAXIMIZE`) per `Objective`; `Evaluation` stores doubles in the problem's declared objective order with indexed access; no internal normalization |
+| D20 | Constraint convention    | Violation magnitude `double >= 0`; `0.0` = satisfied; feasible iff all violations zero; equality tolerance is the constraint author's responsibility (no framework epsilon) |
+| D21 | Candidate equality       | Representations must define value-based `equals`/`hashCode`; `Candidate` delegates to its representation; contractual basis for the S5 cache key |
+| D22 | Core exception convention | JDK unchecked only: `NullPointerException` for nulls, `IllegalArgumentException` for invalid values, `IndexOutOfBoundsException` for accessor indices; messages name the parameter and rule |
+| D23 | Deep immutability        | Core model types are deeply immutable: final types and fields, defensive copies on input, no mutable internals exposed |
+| D24 | Core package             | S1 core model lives in `com.axiometa.core`                                     |
+| D25 | Build-output ignore      | `.gitignore` ignoring `target/` (approved in S1, revising the S0-era decline recorded in D12) |
 
 ## Working protocol (condensed)
 
@@ -61,7 +69,7 @@ Never amend, squash, rebase, or force-push anything that may be under Codex revi
 
 Statuses: `todo` → `in progress` → `committed <hash>` → `reviewed`.
 
-### S0 — Project skeleton — `committed (this commit)`
+### S0 — Project skeleton — `reviewed`
 
 Scope: single-module `pom.xml` (D2, D4, D5, D9; JUnit 5 test-scope dependency; compiler and surefire plugins pinned), `src/main/java/com/axiometa/`, `src/test/java/com/axiometa/`, one placeholder test proving build + test execution, README replaced with a short Axiometa description (D12).
 
@@ -71,7 +79,7 @@ Open decisions:
 
 Done when: `mvn clean verify` passes with zero warnings and runs the placeholder test.
 
-### S1 — Immutable core model — `todo`
+### S1 — Immutable core model — `committed (this commit)`
 
 Scope: typed `Problem<R>`, candidate/solution wrapper, objective declarations with min/max sense, constraint declarations, evaluation-result type. Deep immutability, defensive validation, documented contracts. No algorithm code.
 
@@ -84,6 +92,8 @@ Open decisions:
 6. Formal approval of the deep-immutability rule for core types.
 
 Done when: contracts documented; unit tests cover normal, edge, and failure cases.
+
+Built: package `com.axiometa.core` with six public types — `Problem<R>` (declarations + `evaluate(R)`, documented contract, thread-safety deferred to S4), `Candidate<R>` (record; equality delegates to the representation per D21), `Objective` (name + `ObjectiveSense`), `ObjectiveSense` (`MINIMIZE`/`MAXIMIZE`), `Constraint` (name only; convention per D20), `Evaluation` (final class; defensive copies, indexed accessors, `isFeasible()`, exact-representation value equality) — plus `package-info` documenting the D23 immutability rule and D22 exception conventions. 32 unit tests across five classes cover construction failures with exact messages, defensive copying, index bounds, feasibility (including `-0.0`), equality semantics, and a minimal test-only `Problem<Double>` fixture proving the contracts compose. `BuildSanityTest` removed as superseded.
 
 ### S2 — Representation & phase-component contracts — `todo`
 
