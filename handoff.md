@@ -69,6 +69,10 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D43 | Lifecycle shape          | Step-based: `Algorithm<R>` exposes `initialize()` and `step(state)` over immutable `AlgorithmState`; the single shared loop lives in `AlgorithmRunner.run(algorithm, termination)`; termination is passed to the runner, never owned by the algorithm, and observes every state including generation 0 |
 | D44 | Termination set          | `Terminations` factories: `maxIterations(int)`, `maxEvaluations(long)` (limits >= 1), `anyOf(...)`, `allOf(...)`; combinators consult every member on every check (no short-circuit) so stateful conditions observe the full state sequence |
 | D45 | Algorithm package        | Lifecycle and terminations live in `com.axiometa.algorithm`; `com.axiometa.phase` stays contracts-only |
+| D46 | GA flavor & provenance   | Generational GA with configurable elitism and k-tournament selection; spec: Eiben & Smith 2015 ch. 3–5, Goldberg 1989, elitism De Jong 1975; single-objective and unconstrained only — fitness comparisons defensively reject anything else |
+| D47 | Toy problem              | OneMax on immutable `BitString` (record over `List<Boolean>`); operators: one-point crossover, per-bit flip mutation; the OneMax fitness fixture lives in test sources |
+| D48 | S7 components            | `RandomBitStringInitialization(bitCount, random)`; `OnePointCrossover(probability, random)` — clones parents when the probability draw fails or length < 2; `BitFlipMutation(perBitProbability, random)` — one draw per bit; `TournamentSelection(sense, k, random)` — with-replacement sampling, ties keep the first sampled; `GenerationalReplacement(sense, elitismCount)` — best-e of current (stable sort) + offspring in order, sized to the current population |
+| D49 | GA config & packages     | Plain 7-argument constructor; even `populationSize >= 2`; per-step flow: select N parents → pair in order → crossover → mutate both children → evaluate → replace; any evaluation failure → `IllegalStateException`; packages `com.axiometa.ga` (generic GA pieces) and `com.axiometa.bitstring` (representation + operators) |
 
 ## Working protocol (condensed)
 
@@ -170,7 +174,7 @@ Done when: hit/miss tests, stochastic-bypass tests, and accounting tests pass.
 
 Built: `EvaluationSemantics` enum in core and the required `Problem.evaluationSemantics()` declaration (D40; both test fixtures updated). `CachingEvaluator<R>` in `com.axiometa.evaluation`: unbounded representation-value cache (D41) serving hits as successes paired with the requesting candidate, forwarding all uncached requests (within-batch duplicates included) to the wrapped evaluator as one order-preserving batch, caching only successes, bypassing entirely for stochastic problems, delegating `evaluationCount()` and exposing `cacheHitCount()` (D42), and defensively verifying the inner evaluator's outcome count. 14 tests cover hit/miss behavior, ordering and pairing, duplicate forwarding, failure retry, stochastic bypass, accounting arithmetic (hits + real attempts = requests), validation, misbehaving-inner detection, and immutability.
 
-### S6 — Algorithm lifecycle & termination — `committed (this commit)`
+### S6 — Algorithm lifecycle & termination — `reviewed`
 
 Scope: minimal algorithm lifecycle contract (thin orchestrator per D13); concrete composable termination conditions implementing the S2 termination contract (e.g. max evaluations, max iterations, and/or combinators).
 
@@ -182,7 +186,7 @@ Done when: stub-algorithm tests exercise the lifecycle and termination compositi
 
 Built: `com.axiometa.algorithm` with `Algorithm<R>` (step-based lifecycle per D43; thin-orchestrator contract documented), `AlgorithmRunner` (the single shared loop: initialize → check → (step → check)*; defends against null states with naming messages), and `Terminations` (`maxIterations`, `maxEvaluations`, `anyOf`, `allOf` per D44; validated limits and member lists; combinators consult every member on every check). 17 tests: boundary behavior of both budgets, combinator truth tables, the no-short-circuit guarantee via counting spies, full runner runs against a counting stub algorithm with exact stop iterations under single and composed conditions, generation-0 termination, and all validation paths.
 
-### S7 — Genetic Algorithm end-to-end — `todo`
+### S7 — Genetic Algorithm end-to-end — `committed (this commit)`
 
 Scope: one simple GA (D10) as a thin orchestrator (D13) over concrete implementations of the S2 phase contracts, built only from S1–S6 pieces; one toy problem as test fixture; deterministic end-to-end reproducibility test. Implement from an approved specification with citation (`CLAUDE.md` → Algorithm Provenance) — no code copied from other optimization libraries.
 
@@ -194,6 +198,8 @@ Open decisions:
 5. Where the toy problem lives (test sources vs example package).
 
 Done when: fixed seed ⇒ identical results across runs; GA reaches the toy optimum in tests; full suite green.
+
+Built: `com.axiometa.bitstring` — `BitString` (immutable record representation), `RandomBitStringInitialization`, `OnePointCrossover` (probability-gated, clone fallback), `BitFlipMutation` (one draw per bit); `com.axiometa.ga` — `TournamentSelection` and `GenerationalReplacement` (generic, sharing the package-private `SingleObjectiveFitness` comparator that defensively rejects multi-objective or constrained evaluations) and `GeneticAlgorithm` (thin orchestrator per D13: select → pair → crossover → mutate → evaluate → replace; defensive checks on component contract violations; evaluation failures raise `IllegalStateException`). Package docs carry the D46 citations. Test sources add the `OneMaxProblem` fixture, scripted random doubles proving exact draw consumption, unit suites for every component, and `OneMaxEndToEndTest`: full-stack wiring (root seed → named streams, sequential evaluator behind the fitness cache, composed termination, shared runner) reaching the 20-bit optimum, bit-identical repeat runs from one seed, seed independence, and elite-monotone best fitness.
 
 ## After S7
 
