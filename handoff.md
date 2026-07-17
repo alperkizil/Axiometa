@@ -39,6 +39,8 @@ Approved by the user. Do not re-ask. Do not reopen without a concrete technical 
 | D13 | Phase-component principle | Algorithm phases (initialization, selection, crossover, mutation, replacement, termination) are pluggable, independently testable components; algorithm loops are thin orchestrators |
 | D14 | Phase-contract placement | All six phase contracts declared up front in S2, including termination; S6 implements the lifecycle and concrete termination combinators against the S2 contract |
 | D15 | Phase common ancestor    | Marker super-interface `AlgorithmPhase` (no members) extended by all six phase contracts; not an abstract class |
+| D16 | Initial project version  | `0.1.0-SNAPSHOT`                                                               |
+| D17 | S0 pinned build versions | maven-compiler-plugin 3.15.0; maven-surefire-plugin 3.5.6; junit-jupiter 5.12.2 |
 
 ## Working protocol (condensed)
 
@@ -59,7 +61,7 @@ Never amend, squash, rebase, or force-push anything that may be under Codex revi
 
 Statuses: `todo` → `in progress` → `committed <hash>` → `reviewed`.
 
-### S0 — Project skeleton — `todo`
+### S0 — Project skeleton — `committed (this commit)`
 
 Scope: single-module `pom.xml` (D2, D4, D5, D9; JUnit 5 test-scope dependency; compiler and surefire plugins pinned), `src/main/java/com/axiometa/`, `src/test/java/com/axiometa/`, one placeholder test proving build + test execution, README replaced with a short Axiometa description (D12).
 
